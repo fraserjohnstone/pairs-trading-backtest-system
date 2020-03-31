@@ -14,11 +14,8 @@ def get_hedge_ratio(log_returns_a, log_returns_b):
     return results.params['Log returns A']
 
 def get_spreads(prices_a, prices_b, hedge_ratio):
-    spreads = np.log(prices_a) - (hedge_ratio * np.log(prices_b))
+    spreads = hedge_ratio * np.log(prices_a) - np.log(prices_b)
     spreads.name = 'Spreads'
-
-    # plt.plot(spreads)
-    # plt.show()
 
     return spreads
 
@@ -51,7 +48,7 @@ def z_score(spreads):
 
 if __name__ == '__main__':
     num_samples = 1000000
-    lookback_period = 300
+    lookback_period = 100
     z_upper = 1
     z_lower = -1
     p_threshold = 1
@@ -92,7 +89,7 @@ if __name__ == '__main__':
             if p_val <= p_threshold:
                 if zscore > z_upper:
                     # the spread is more than the mean so we short A and long B
-                    wallet_delta = sample_prices_a.iloc[-1] - (sample_prices_b.iloc[-1] * hedge)
+                    wallet_delta = hedge * sample_prices_a.iloc[-1] - sample_prices_b.iloc[-1]
                     current_trade = {
                         'open_price_a': sample_prices_a.iloc[-1],
                         'open_price_b': sample_prices_b.iloc[-1],
@@ -107,7 +104,7 @@ if __name__ == '__main__':
                     currently_trading = True
                 elif zscore < z_lower:
                     # the spread is less than the mean so we short B and long A
-                    wallet_delta = (sample_prices_b.iloc[-1] * hedge) - sample_prices_a.iloc[-1]
+                    wallet_delta = sample_prices_b.iloc[-1] - hedge * sample_prices_a.iloc[-1]
                     current_trade = {
                         'open_price_a': sample_prices_a.iloc[-1],
                         'open_price_b': sample_prices_b.iloc[-1],
@@ -126,13 +123,13 @@ if __name__ == '__main__':
                     print
                     print 'closing for long running non cointegration'
                     if current_trade['shorting']:
-                        wallet_delta = (sample_prices_b.iloc[-1] * current_trade['hedge_ratio']) - sample_prices_a.iloc[-1]
+                        wallet_delta = sample_prices_b.iloc[-1] - current_trade['hedge_ratio'] * sample_prices_a.iloc[-1]
                         rolling_balance += wallet_delta
                         print str(i) + '. rolling balance: ' + str(rolling_balance)
                         current_trade = {}
                         currently_trading = False
                     elif current_trade['longing']:
-                        wallet_delta = sample_prices_a.iloc[-1] - (sample_prices_b.iloc[-1] * current_trade['hedge_ratio'])
+                        wallet_delta = current_trade['hedge_ratio'] * sample_prices_a.iloc[-1] - sample_prices_b.iloc[-1]
                         rolling_balance += wallet_delta
                         print str(i) + '. rolling balance: ' + str(rolling_balance)
                         current_trade = {}
@@ -142,13 +139,13 @@ if __name__ == '__main__':
                     current_trade['non_coint_count'] += 1
 
             if current_trade['shorting'] and zscore < z_lower:
-                wallet_delta = (sample_prices_b.iloc[-1] * current_trade['hedge_ratio']) - sample_prices_a.iloc[-1]
+                wallet_delta = sample_prices_b.iloc[-1] - sample_prices_a.iloc[-1] * current_trade['hedge_ratio']
                 rolling_balance += wallet_delta
                 print str(i) + '. rolling balance: ' + str(rolling_balance)
                 current_trade = {}
                 currently_trading = False
             elif current_trade['longing'] and zscore > z_upper:
-                wallet_delta = sample_prices_a.iloc[-1] - (sample_prices_b.iloc[-1] * current_trade['hedge_ratio'])
+                wallet_delta = current_trade['hedge_ratio'] * sample_prices_a.iloc[-1] - sample_prices_b.iloc[-1]
                 rolling_balance += wallet_delta
                 print str(i) + '. rolling balance: ' + str(rolling_balance)
                 current_trade = {}
