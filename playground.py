@@ -1,10 +1,5 @@
-obj = {
-    'value': 1
-}
+from services.pair_selection_service import PairSelectionService
 
-def modify_obj(o):
-    o['value'] = 'new value'
+selected_pairs = PairSelectionService().selected_pairs()
 
-print obj
-modify_obj(obj)
-print obj
+print(selected_pairs)
