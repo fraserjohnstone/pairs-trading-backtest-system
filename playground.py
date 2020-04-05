@@ -1,5 +1,10 @@
 from services.pair_selection_service import PairSelectionService
+import pickle
+import applied_algorithm as algo
 
-selected_pairs = PairSelectionService().selected_pairs()
 
-print(selected_pairs)
+pickle_in = open("assets/XRPBTC|BABBTC.pickle","rb")
+pairs = pickle.load(pickle_in)
+pickle_in.close()
+
+algo.run(pairs)

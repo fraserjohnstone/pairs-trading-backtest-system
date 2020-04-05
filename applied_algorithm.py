@@ -6,7 +6,6 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import coint
 import random
-from historic_data import HistoricData
 
 def get_spreads(prices_a, prices_b, hedge_ratio):
     spreads =  np.log(prices_b) - hedge_ratio * np.log(prices_a)
