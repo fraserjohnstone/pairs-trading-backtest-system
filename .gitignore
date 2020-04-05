@@ -1,4 +1,4 @@
 *.pyc
 *.pickle
+*.png
 playground.py
-db_connection_manager.py

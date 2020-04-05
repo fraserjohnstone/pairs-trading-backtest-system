@@ -9,5 +9,4 @@ class CointegrationService:
 
     def p_value(self, ts_1, ts_2):
         p = coint(ts_1, ts_2)[1]
-        print('the p value is ', p)
         return p
