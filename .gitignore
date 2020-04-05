@@ -2,3 +2,4 @@
 *.pickle
 *.png
 playground.py
+__pycache__/*
