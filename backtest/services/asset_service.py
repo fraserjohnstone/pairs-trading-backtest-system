@@ -1,18 +1,18 @@
 class AssetService:
     def all(self):
         return [
-            # 'DSHBTC', # Dash
-            # 'BATBTC', # Basic Authentication Token
+            'DSHBTC', # Dash
+            'BATBTC', # Basic Authentication Token
             'BABBTC', # Bitcoin Cash
-            # 'EOSBTC', # EOS
-            # 'QTMBTC', # Qtum
-            # 'ETCBTC', # Etherium Classic
-            # 'ETHBTC', # Entherium
-            # 'LTCBTC', # Litecoin
-            # 'XLMBTC', # Stellar Lumens
-            # 'XMRBTC', # Monero
-            # 'ZECBTC', # ZCash
-            # 'XTZBTC', # Tezos
+            'EOSBTC', # EOS
+            'QTMBTC', # Qtum
+            'ETCBTC', # Etherium Classic
+            'ETHBTC', # Entherium
+            'LTCBTC', # Litecoin
+            'XLMBTC', # Stellar Lumens
+            'XMRBTC', # Monero
+            'ZECBTC', # ZCash
+            'XTZBTC', # Tezos
             'XRPBTC' # Ripple
         ]
 
