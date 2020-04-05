@@ -1,5 +1,5 @@
-from services.candle_service import CandleService
-from services.asset_service import AssetService
+from backtest.services.candle_service import CandleService
+from backtest.services.asset_service import AssetService
 import pandas as pd
 
 class PriceService:

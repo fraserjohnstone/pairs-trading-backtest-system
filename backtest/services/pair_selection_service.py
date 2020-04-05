@@ -1,5 +1,5 @@
-from services.cointegration_service import CointegrationService
-from services.price_service import PriceService
+from backtest.services.cointegration_service import CointegrationService
+from backtest.services.price_service import PriceService
 
 class PairSelectionService:
     def __init__(self):

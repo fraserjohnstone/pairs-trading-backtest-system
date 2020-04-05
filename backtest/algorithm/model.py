@@ -1,50 +1,7 @@
 import numpy as np
-import pandas as pd
-import math
-from statsmodels.regression.rolling import RollingOLS
-import statsmodels.api as sm
+import backtest.helpers.model_helper as helper
+from backtest.services.cointegration_service import CointegrationService
 import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import coint
-import random
-
-def get_spreads(prices_a, prices_b, hedge_ratio):
-    spreads =  np.log(prices_b) - hedge_ratio * np.log(prices_a)
-    return spreads
-
-def p_value(prices_a, prices_b):
-    return coint(prices_a, prices_b)[1]
-
-def z_score(prices_a, prices_b):
-    # prices_a = sm.add_constant(prices_a)
-    rolling_beta = RollingOLS(endog=prices_b, exog=prices_a, window=30).fit()
-    # prices_a = prices_a['prices_a']
-    hedge = rolling_beta.params['subset_prices_a'].iloc[-1]
-
-    spreads = prices_b - rolling_beta.params['subset_prices_a'] * prices_a
-    spreads.name = 'spreads'
-
-    # Get the 1 day moving average of the price spreads
-    spreads_mavg_1 = spreads.rolling(1).mean()
-    spreads_mavg_1.name = 'spreads 1d mavg'
-
-    # Get the 30 day moving average
-    spreads_mavg30 = spreads.rolling(30).mean()
-    spreads_mavg30.name = 'spreads 30d mavg'
-
-    # get the rolling 30 day satandard deviation
-    std_30 = spreads.rolling(30).std()
-    std_30.name = 'std 30d'
-
-    # Compute the z score for each day
-    zscore_30_1 = (spreads_mavg_1 - spreads_mavg30)/std_30
-    zscore_30_1.name = 'z-score'
-
-    return zscore_30_1.iloc[-1], hedge
-
-def get_subset(ts_a, ts_b, end_index, sample_size):
-    subset_a = ts_a[end_index-sample_size:end_index]
-    subset_b = ts_b[end_index-sample_size:end_index]
-    return subset_a, subset_b
 
 def config():
     return {
@@ -56,7 +13,7 @@ def config():
         'trade_values': []
     }
 
-def run(pairs):
+def run_test(pairs):
     for pair, vals in pairs.items():
         prices_a = vals['prices_a']
         prices_b = vals['prices_b']
@@ -69,13 +26,19 @@ def run(pairs):
         current_trade = {}
 
         for i in range(config()['lookback_period'], len(prices_a)):
-            subset_prices_a, subset_prices_b = get_subset(prices_a, prices_b, i, config()['lookback_period'])
+            subset_prices_a, subset_prices_b = helper.get_subset(
+                prices_a,
+                prices_b, i,
+                config()['lookback_period']
+            )
             subset_prices_a.name = 'subset_prices_a'
             subset_prices_b.name = 'subset_prices_b'
 
-            zscore, hedge = z_score(subset_prices_a, subset_prices_b)
-
-            p_val = p_value(subset_prices_a, subset_prices_b)
+            zscore, hedge = helper.z_score(subset_prices_a, subset_prices_b)
+            p_val = CointegrationService().p_value(
+                subset_prices_a,
+                subset_prices_b
+            )
 
             print()
             print('zscore: ', zscore)

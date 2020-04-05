@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
-from db_connection_manager import DbConnectionManager
 import requests
-from services.asset_service import AssetService
+from backtest.services.asset_service import AssetService
 
 class CandleService:
     def __init__(self, num_candles=10000, time_frame='15m'):
