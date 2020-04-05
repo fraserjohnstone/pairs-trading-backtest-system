@@ -1,6 +1,7 @@
 from statsmodels.regression.rolling import RollingOLS
 import statsmodels.api as sm
 import numpy as np
+import matplotlib.pyplot as plt
 
 def z_score(prices_a, prices_b):
     # prices_a = sm.add_constant(prices_a)
@@ -44,8 +45,8 @@ def calculate_wallet_delta(
     else:
         return price_a * hedge - price_b
 
-def save_plot(balance, pair):
-    if rolling_balance > 0:
+def save_plot(balance, balances, pair):
+    if balance > 0:
         plt.plot(balances)
         plt.title('Rolling Balance ('+pair+')')
         plt.xlabel('Passes')

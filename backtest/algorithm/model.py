@@ -1,7 +1,6 @@
 import numpy as np
 import backtest.helpers.model_helper as helper
 from backtest.services.cointegration_service import CointegrationService
-import matplotlib.pyplot as plt
 
 class Model:
     def __init__(self, pairs):
@@ -111,4 +110,4 @@ class Model:
                 self.balances.append(self.balance)
                 print('balance (BTC): ', self.balance)
 
-            helper.save_plot(self.balance, pair)
+            helper.save_plot(self.balance, self.balances, pair)
