@@ -1,8 +1,8 @@
 import numpy as np
-import backtest.helpers.model_helper as helper
-from realtime.services.cointegration_service import CointegrationService
-from realtime.services.ticker_service import TickerService
-from realtime.services.price_service import PriceService
+import helpers.model_helper as helper
+from services.cointegration_service import CointegrationService
+from services.ticker_service import TickerService
+from services.price_service import PriceService
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ class Model:
     def setup_backtest(self):
         self.lookback_period = 80
         self.z_upper = 1
-        self.z_lower = 1
+        self.z_lower = -1
         self.p_threshold = 0.05
         self.non_coint_threshold = 50
         self.ticker_service = TickerService()
@@ -107,21 +107,15 @@ class Model:
         self.setup_pass()
 
         while True:
-            historic_prices = self.price_service.historic_prices([asset_a, asset_b])
-            historic_prices_a = historic_prices[asset_a+'|'+asset_b][asset_a]
-            historic_prices_b = historic_prices[asset_a+'|'+asset_b][asset_b]
+            historic_prices = self.price_service.historic_prices(0.25, '1m', [asset_a, asset_b])
+            historic_prices_a = historic_prices[asset_a][-80:]
+            historic_prices_b = historic_prices[asset_b][-80:]
 
             ticker_data_a = self.ticker_service.ticker_for(asset_a)
             ticker_data_b = self.ticker_service.ticker_for(asset_b)
 
-            historic_prices_a = pd.Series(np.append(historic_prices_a.values, ticker_data_a['avg_price']))
-            historic_prices_b = pd.Series(np.append(historic_prices_b.values, ticker_data_b['avg_price']))
-            historic_prices_a.name = 'subset_prices_a'
-            historic_prices_b.name = 'subset_prices_b'
-
-            plt.plot(historic_prices_a)
-            plt.plot(historic_prices_b)
-            plt.show()
+            historic_prices_a = pd.Series(np.append(historic_prices_a.values, ticker_data_a['avg_price']), name='subset_prices_a')
+            historic_prices_b = pd.Series(np.append(historic_prices_b.values, ticker_data_b['avg_price']), name='subset_prices_b')
 
             zscore, hedge = helper.z_score(historic_prices_a, historic_prices_b)
             p_val = CointegrationService().p_value(
@@ -154,4 +148,4 @@ class Model:
             self.balances.append(self.balance)
             self.pass_number += 1
 
-            time.sleep(60*5)
+            time.sleep(60)

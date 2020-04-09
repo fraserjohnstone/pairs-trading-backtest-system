@@ -1,4 +1,5 @@
-from backtest.services.pair_selection_service import PairSelectionService
+from realtime.processes.cointegration_detection_process import CointegrationDetectionProcess
 from realtime.algorithm.model import Model
 
-Model().run('XMRBTC', 'XRPBTC')
+# CointegrationDetectionProcess().run()
+Model().run('LTCBTC', 'ETHBTC')

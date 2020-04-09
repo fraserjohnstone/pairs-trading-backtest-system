@@ -15,7 +15,7 @@ class TickerService:
 
         for symbol_info in res:
             if symbol_info['symbol'] == asset:
-                ticker['ask'] = symbol_info['askPrice']
-                ticker['bid'] = symbol_info['bidPrice']
+                ticker['ask'] = float(symbol_info['askPrice'])
+                ticker['bid'] = float(symbol_info['bidPrice'])
                 ticker['avg_price'] = (float(symbol_info['askPrice'])+float(symbol_info['bidPrice']))/2.0
         return ticker

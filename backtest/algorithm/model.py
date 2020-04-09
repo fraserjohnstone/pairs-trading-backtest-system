@@ -1,6 +1,6 @@
 import numpy as np
-import backtest.helpers.model_helper as helper
-from backtest.services.cointegration_service import CointegrationService
+import helpers.model_helper as helper
+from services.cointegration_service import CointegrationService
 
 class Model:
     def __init__(self, pairs):
@@ -9,7 +9,7 @@ class Model:
     def setup_backtest(self, pairs):
         self.lookback_period = 80
         self.z_upper = 1
-        self.z_lower = 1
+        self.z_lower = -1
         self.p_threshold = 0.05
         self.non_coint_threshold = 50
         self.pairs = pairs
@@ -110,4 +110,4 @@ class Model:
                 self.balances.append(self.balance)
                 print('balance (BTC): ', self.balance)
 
-            helper.save_plot(self.balance, self.balances, pair)
+            # helper.save_plot(self.balance, self.balances, pair)

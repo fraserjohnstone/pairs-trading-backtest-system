@@ -11,8 +11,8 @@ class AssetService:
         return [
             'ETHBTC',
             'LTCBTC',
-            # 'BNBBTC',
-            # 'NEOBTC',
+            'BNBBTC',
+            'NEOBTC',
             # 'BCCBTC',
             # 'GASBTC',
             # 'HSRBTC',
@@ -21,7 +21,7 @@ class AssetService:
             # 'LRCBTC',
             # 'QTUMBTC',
             # 'YOYOBTC',
-            # 'OMGBTC'
+            # 'OMGBTC',
             # 'ZRXBTC',
             # 'STRATBTC',
             # 'SNGLSBTC',
