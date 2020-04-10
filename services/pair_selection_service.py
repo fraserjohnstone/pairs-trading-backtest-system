@@ -8,7 +8,7 @@ class PairSelectionService:
         self.price_service = PriceService()
         self.asset_service = AssetService()
         self.periods = [80, 160]
-        self.intervals = [1,2,6]
+        self.intervals = [1,2]
 
     def selected_pairs(self, days_to_gather, interval, assets=None, possible_pairs=None):
         if not assets:
@@ -24,8 +24,6 @@ class PairSelectionService:
             asset_a, asset_b = paired_assets
             prices_a = asset_prices[asset_a]
             prices_b = asset_prices[asset_b]
-
-            print('analysing', asset_a+'|'+asset_b)
 
             try:
                 if self.displays_cointegration(prices_a, prices_b):
@@ -52,7 +50,6 @@ class PairSelectionService:
                     criteria_met = True
                     break
 
-        print('criteria met?: ', criteria_met)
         return criteria_met
 
     def cointegrated_at_interval(self, prices_a, prices_b, interval):

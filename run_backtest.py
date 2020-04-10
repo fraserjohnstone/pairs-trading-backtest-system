@@ -1,5 +1,5 @@
 from services.pair_selection_service import PairSelectionService
-from backtest.algorithm.model import Model
+from models.backtest import Backtest
 
-pairs = PairSelectionService().selected_pairs(1, '1m')
-Model(pairs).backtest()
+pairs = PairSelectionService().selected_pairs(3, '5m')
+Backtest().run(pairs)

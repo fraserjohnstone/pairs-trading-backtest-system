@@ -7,7 +7,7 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
-class Model:
+class Realtime:
     def __init__(self):
         self.setup_backtest()
 
@@ -16,20 +16,22 @@ class Model:
         self.z_upper = 1
         self.z_lower = -1
         self.p_threshold = 0.05
-        self.non_coint_threshold = 50
+        self.non_coint_threshold = 60
         self.ticker_service = TickerService()
         self.price_service = PriceService()
 
-    def setup_pass(self):
+    def setup_pass(self, asset_a, asset_b):
         self.balance = 0.00
         self.balances = [self.balance]
         self.current_trade = {}
         self.pass_number = 1
+        self.asset_a = asset_a
+        self.asset_b = asset_b
 
     def open_trade(self, p_val, zscore, ticker_data_a, ticker_data_b, hedge):
-        if p_val <= self.p_threshold:
+        if helper.is_cointegrated(self.asset_a, self.asset_b):
             if zscore > self.z_upper:
-                print('opening trade')
+                print('  - opening trade')
                 # Go Short: the spread is more than the mean so we short B and long A
                 price_a = ticker_data_a['ask']
                 price_b = ticker_data_b['bid']
@@ -41,7 +43,7 @@ class Model:
                     price_a, price_b, hedge, 'short'
                 )
             elif zscore < self.z_lower:
-                print('opening trade')
+                print('  - opening trade')
                 # Go Long: the spread is less than the mean so we short A and long B
                 price_a = ticker_data_a['bid']
                 price_b = ticker_data_b['ask']
@@ -54,9 +56,9 @@ class Model:
                 )
 
     def close_trade(self, p_val, zscore, ticker_data_a, ticker_data_b, hedge):
-        if p_val > self.p_threshold:
-            print('closing trade')
+        if not helper.is_cointegrated(self.asset_a, self.asset_b):
             if self.current_trade['non_coint_count'] > self.non_coint_threshold:
+                print('  - closing trade')
                 self.close_for_non_cointegration(
                     p_val, zscore, ticker_data_a, ticker_data_b, hedge
                 )
@@ -65,7 +67,7 @@ class Model:
                 self.current_trade['non_coint_count'] += 1
 
         if self.current_trade['type'] == 'short' and zscore < self.z_lower:
-            print('closing trade')
+            print('  - closing trade')
             price_a = ticker_data_a['bid']
             price_b = ticker_data_b['ask']
 
@@ -74,7 +76,7 @@ class Model:
             )
             self.current_trade = {}
         elif self.current_trade['type'] == 'long' and zscore > self.z_upper:
-            print('closing trade')
+            print('  - closing trade')
             price_a = ticker_data_a['ask']
             price_b = ticker_data_b['bid']
 
@@ -85,7 +87,7 @@ class Model:
 
     def close_for_non_cointegration(self, p_val, zscore, ticker_data_a, ticker_data_b, hedge):
         if self.current_trade['type'] == 'short':
-            print('closing trade')
+            print('  - closing trade')
             price_a = ticker_data_a['bid']
             price_b = ticker_data_b['ask']
 
@@ -94,7 +96,7 @@ class Model:
             )
             self.current_trade = {}
         elif self.current_trade['type'] == 'long':
-            print('closing trade')
+            print('  - closing trade')
             price_a = ticker_data_a['ask']
             price_b = ticker_data_b['bid']
 
@@ -104,48 +106,55 @@ class Model:
             self.current_trade = {}
 
     def run(self, asset_a, asset_b):
-        self.setup_pass()
+        self.setup_pass(asset_a, asset_b)
 
         while True:
-            historic_prices = self.price_service.historic_prices(0.25, '1m', [asset_a, asset_b])
-            historic_prices_a = historic_prices[asset_a][-80:]
-            historic_prices_b = historic_prices[asset_b][-80:]
+            try:
+                historic_prices = self.price_service.historic_prices(1, '5m', [asset_a, asset_b])
+                historic_prices_a = historic_prices[asset_a][-80:]
+                historic_prices_b = historic_prices[asset_b][-80:]
 
-            ticker_data_a = self.ticker_service.ticker_for(asset_a)
-            ticker_data_b = self.ticker_service.ticker_for(asset_b)
+                ticker_data_a = self.ticker_service.ticker_for(asset_a)
+                ticker_data_b = self.ticker_service.ticker_for(asset_b)
 
-            historic_prices_a = pd.Series(np.append(historic_prices_a.values, ticker_data_a['avg_price']), name='subset_prices_a')
-            historic_prices_b = pd.Series(np.append(historic_prices_b.values, ticker_data_b['avg_price']), name='subset_prices_b')
+                historic_prices_a = pd.Series(np.append(historic_prices_a.values, ticker_data_a['avg_price']), name='subset_prices_a')
+                historic_prices_b = pd.Series(np.append(historic_prices_b.values, ticker_data_b['avg_price']), name='subset_prices_b')
 
-            zscore, hedge = helper.z_score(historic_prices_a, historic_prices_b)
-            p_val = CointegrationService().p_value(
-                historic_prices_a, historic_prices_b
-            )
-
-            print('pass ' + str(self.pass_number) + ' - balance (BTC): ', self.balance)
-            print('z_score: ', zscore)
-            print('hedge: ', hedge)
-            print('p value: ', p_val)
-            print()
-
-            if not helper.open_to_trading(self.current_trade):
-                self.open_trade(
-                    p_val,
-                    zscore,
-                    ticker_data_a,
-                    ticker_data_b,
-                    hedge
-                )
-            else:
-                self.close_trade(
-                    p_val,
-                    zscore,
-                    ticker_data_a,
-                    ticker_data_b,
-                    hedge
+                zscore, hedge = helper.z_score(historic_prices_a, historic_prices_b)
+                p_val = CointegrationService().p_value(
+                    historic_prices_a, historic_prices_b
                 )
 
-            self.balances.append(self.balance)
-            self.pass_number += 1
+                print()
+                print('-'*20)
+                print('pass ' + str(self.pass_number))
+                print('-'*20)
+                print('z_score: ', zscore)
+                print('hedge: ', hedge)
 
-            time.sleep(60)
+                if not helper.open_to_trading(self.current_trade):
+                    self.open_trade(
+                        p_val,
+                        zscore,
+                        ticker_data_a,
+                        ticker_data_b,
+                        hedge
+                    )
+                else:
+                    self.close_trade(
+                        p_val,
+                        zscore,
+                        ticker_data_a,
+                        ticker_data_b,
+                        hedge
+                    )
+
+                self.balances.append(self.balance)
+                self.pass_number += 1
+
+                print('Balance:', self.balance)
+
+                time.sleep(60*5)
+            except:
+                time.sleep(60)
+                continue

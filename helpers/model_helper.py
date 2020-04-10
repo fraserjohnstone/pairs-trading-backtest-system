@@ -2,11 +2,12 @@ from statsmodels.regression.rolling import RollingOLS
 import statsmodels.api as sm
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
 def z_score(prices_a, prices_b):
-    # prices_a = sm.add_constant(prices_a)
+    prices_a = sm.add_constant(prices_a)
     rolling_beta = RollingOLS(endog=prices_b, exog=prices_a, window=30).fit()
-    # prices_a = prices_a['prices_a']
+    prices_a = prices_a['subset_prices_a']
     hedge = rolling_beta.params['subset_prices_a'].iloc[-1]
 
     spreads = prices_b - rolling_beta.params['subset_prices_a'] * prices_a
@@ -23,6 +24,14 @@ def z_score(prices_a, prices_b):
 
     zscore_30_1 = (spreads_mavg_1 - spreads_mavg30)/std_30
     zscore_30_1.name = 'z-score'
+
+    plt.figure(figsize=(15,7))
+    plt.plot(spreads)
+    plt.axhline(0, color='black')
+    plt.axhline(1.0, color='red', linestyle='--')
+    plt.axhline(-1.0, color='green', linestyle='--')
+    plt.legend(['Rolling Ratio z-Score', 'Mean', '+1', '-1'])
+    plt.show()
 
     return zscore_30_1.iloc[-1], hedge
 
@@ -61,11 +70,17 @@ def calculate_precentage_profit(
     price_a,
     price_b
 ):
-    diff_a = (np.log(price_a) - np.log(current_trade['price_a'])) * current_trade['hedge']
-    diff_b = np.log(price_b) - np.log(current_trade['price_b'])
-    return (diff_a + diff_b) * 100
+    hedge = current_trade['hedge']
+    previous_a = current_trade['price_a']
+    previous_b = current_trade['price_b']
+
+    return (hedge*np.log(price_a) - np.log(price_b))-(hedge*np.log(previous_a) - np.log(previous_b))
+    # diff_a = (np.log(price_a) - np.log(current_trade['price_a'])) * current_trade['hedge']
+    # diff_b = np.log(price_b) - np.log(current_trade['price_b'])
+    # return (diff_a + diff_b) * 100
 
 def build_trade(price_a, price_b, hedge, type):
+    print('opening_trade')
     return {
         'price_a': price_a,
         'price_b': price_b,
@@ -73,3 +88,9 @@ def build_trade(price_a, price_b, hedge, type):
         'type': type,
         'non_coint_count': 0
     }
+
+def is_cointegrated(asset_a, asset_b):
+    with open('processes/coint_results.json') as f:
+        list = json.load(f)
+
+        return asset_a+'|'+asset_b in list

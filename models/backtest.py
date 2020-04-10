@@ -1,18 +1,18 @@
 import numpy as np
 import helpers.model_helper as helper
 from services.cointegration_service import CointegrationService
+import time
 
-class Model:
-    def __init__(self, pairs):
-        self.setup_backtest(pairs)
+class Backtest:
+    def __init__(self):
+        self.setup_backtest()
 
-    def setup_backtest(self, pairs):
+    def setup_backtest(self):
         self.lookback_period = 80
-        self.z_upper = 1
-        self.z_lower = -1
+        self.z_upper = 2
+        self.z_lower = -2
         self.p_threshold = 0.05
         self.non_coint_threshold = 50
-        self.pairs = pairs
 
     def setup_pass(self):
         self.balance = 0.00
@@ -39,11 +39,14 @@ class Model:
                 )
 
     def close_trade(self, p_val, zscore, price_a, price_b, hedge):
+        trade_closed = False
+
         if p_val > self.p_threshold:
             if self.current_trade['non_coint_count'] > self.non_coint_threshold:
                 self.close_for_non_cointegration(
                     p_val, zscore, price_a, price_b, hedge
                 )
+                trade_closed = True
                 return
             else:
                 self.current_trade['non_coint_count'] += 1
@@ -52,27 +55,38 @@ class Model:
             self.balance += helper.calculate_wallet_delta(
                 price_a, price_b, hedge, 'long'
             )
-            self.current_trade = {}
+            trade_closed = True
         elif self.current_trade['type'] == 'long' and zscore > self.z_upper:
             self.balance += helper.calculate_wallet_delta(
                 price_a, price_b, hedge, 'short'
             )
+            trade_closed = True
+
+        if trade_closed:
+            print('price of a now: ', price_a)
+            print('price of b now: ', price_b)
+            print('current_trade: ', self.current_trade)
+            print('****** Profit: ', helper.calculate_precentage_profit(
+                self.current_trade,
+                price_a,
+                price_b
+            ))
+
             self.current_trade = {}
+            time.sleep(5)
 
     def close_for_non_cointegration(self, p_val, zscore, price_a, price_b, hedge):
         if self.current_trade['type'] == 'short':
             self.balance += helper.calculate_wallet_delta(
                 price_a, price_b, hedge, 'long'
             )
-            self.current_trade = {}
         elif self.current_trade['type'] == 'long':
             self.balance += helper.calculate_wallet_delta(
                 price_a, price_b, hedge, 'short'
             )
-            self.current_trade = {}
 
-    def backtest(self):
-        for pair, vals in self.pairs.items():
+    def run(self, pairs):
+        for pair, vals in pairs.items():
             prices_a = vals['prices_a']
             prices_b = vals['prices_b']
 

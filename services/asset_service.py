@@ -11,8 +11,8 @@ class AssetService:
         return [
             'ETHBTC',
             'LTCBTC',
-            'BNBBTC',
-            'NEOBTC',
+            # 'BNBBTC',
+            # 'NEOBTC',
             # 'BCCBTC',
             # 'GASBTC',
             # 'HSRBTC',
