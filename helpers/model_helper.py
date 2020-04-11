@@ -25,13 +25,13 @@ def z_score(prices_a, prices_b):
     zscore_30_1 = (spreads_mavg_1 - spreads_mavg30)/std_30
     zscore_30_1.name = 'z-score'
 
-    plt.figure(figsize=(15,7))
-    plt.plot(spreads)
-    plt.axhline(0, color='black')
-    plt.axhline(1.0, color='red', linestyle='--')
-    plt.axhline(-1.0, color='green', linestyle='--')
-    plt.legend(['Rolling Ratio z-Score', 'Mean', '+1', '-1'])
-    plt.show()
+    # plt.figure(figsize=(15,7))
+    # plt.plot(zscore_30_1)
+    # plt.axhline(0, color='black')
+    # plt.axhline(1.0, color='red', linestyle='--')
+    # plt.axhline(-1.0, color='green', linestyle='--')
+    # plt.legend(['Rolling Ratio z-Score', 'Mean', '+1', '-1'])
+    # plt.show()
 
     return zscore_30_1.iloc[-1], hedge
 

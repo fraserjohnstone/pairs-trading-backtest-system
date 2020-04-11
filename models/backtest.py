@@ -39,14 +39,12 @@ class Backtest:
                 )
 
     def close_trade(self, p_val, zscore, price_a, price_b, hedge):
-        trade_closed = False
-
         if p_val > self.p_threshold:
             if self.current_trade['non_coint_count'] > self.non_coint_threshold:
                 self.close_for_non_cointegration(
                     p_val, zscore, price_a, price_b, hedge
                 )
-                trade_closed = True
+                self.current_trade = {}
                 return
             else:
                 self.current_trade['non_coint_count'] += 1
@@ -55,25 +53,12 @@ class Backtest:
             self.balance += helper.calculate_wallet_delta(
                 price_a, price_b, hedge, 'long'
             )
-            trade_closed = True
+            self.current_trade = {}
         elif self.current_trade['type'] == 'long' and zscore > self.z_upper:
             self.balance += helper.calculate_wallet_delta(
                 price_a, price_b, hedge, 'short'
             )
-            trade_closed = True
-
-        if trade_closed:
-            print('price of a now: ', price_a)
-            print('price of b now: ', price_b)
-            print('current_trade: ', self.current_trade)
-            print('****** Profit: ', helper.calculate_precentage_profit(
-                self.current_trade,
-                price_a,
-                price_b
-            ))
-
             self.current_trade = {}
-            time.sleep(5)
 
     def close_for_non_cointegration(self, p_val, zscore, price_a, price_b, hedge):
         if self.current_trade['type'] == 'short':
