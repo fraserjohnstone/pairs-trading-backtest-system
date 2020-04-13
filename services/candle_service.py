@@ -15,7 +15,10 @@ class CandleService:
         newest_point = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
         oldest_point = (datetime.datetime.now()-datetime.timedelta(days=days_to_gather)).strftime("%d %b %Y %H:%M:%S")
 
+        i = 1
+
         for asset in assets:
+            print('gathering asset', asset, ' --- ', i, 'of', len(assets))
             res = self.client().get_historical_klines(
                 asset,
                 interval,
@@ -23,6 +26,7 @@ class CandleService:
                 newest_point
             )
             candles[asset] = res
+            i += 1
 
         return candles
 

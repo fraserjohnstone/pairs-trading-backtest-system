@@ -18,10 +18,11 @@ def simple_hedge(prices_a, prices_b):
     # returns_a = returns_a['returns_a']
     # return model.params[1]
 
-    prices_a = sm.add_constant(prices_a)
-    model = regression.linear_model.OLS(prices_b, prices_a).fit()
-    prices_a = prices_a['subset_prices_a']
-    return model.params[1]
+    # prices_a = sm.add_constant(prices_a)
+    # model = regression.linear_model.OLS(prices_b, prices_a).fit()
+    # prices_a = prices_a['subset_prices_a']
+    # return model.params[1]
+    return (prices_a/prices_b).iloc[-1]
 
 def simple_zscore(spreads):
     return (spreads.iloc[-1] - spreads.mean())/spreads.std()
@@ -31,7 +32,7 @@ def simple_spreads(prices_a, prices_b, hedge):
     # returns_b = prices_b.pct_change()[1:]
 
     # spreads = np.log(returns_b) - hedge * np.log(returns_a)
-    spreads = np.log(prices_b) - hedge * np.log(prices_a)
+    spreads = np.log(prices_b) - np.log(prices_a)
     spreads.name = 'spreads'
 
     return spreads
@@ -44,16 +45,16 @@ def get_subset(ts_a, ts_b, end_index, sample_size):
 def currently_trading(current_trade):
     return len(current_trade) > 0
 
-def save_plot(balance, balances, pair):
-    if balance > 0:
-        plt.plot(balances)
-        plt.title('Rolling Balance ('+pair+')')
-        plt.xlabel('Passes')
-        plt.ylabel('Balance')
-
-        plt.draw()
-        plt.savefig('backtest/results/'+pair+'.png')
-        plt.clf()
+# def save_plot(wallet, pair):
+#     if wallet.holdings['btc'] > 100.0:
+#         plt.plot(balances)
+#         plt.title('Rolling Balance ('+pair+')')
+#         plt.xlabel('Passes')
+#         plt.ylabel('Balance')
+#
+#         plt.draw()
+#         plt.savefig('results/'+pair+'.png')
+#         plt.clf()
 
 # def calculate_profit(
 #     current_trade
@@ -73,7 +74,7 @@ def trade_quantity_asset(price):
     return trade_quantity_btc()/price
 
 def build_trade(price_a, price_b, hedge, type):
-    quantity_a = trade_quantity_asset(price_a) * hedge
+    quantity_a = trade_quantity_asset(price_a)
     quantity_b = trade_quantity_asset(price_b)
 
     return {
@@ -92,12 +93,12 @@ def is_cointegrated(asset_a, asset_b):
 
         return asset_a+'|'+asset_b in list
 
-def generate_coint_series(sample_size=10000, a_shift=20, b_shift=0):
-    noise = np.random.normal(0, 1, sample_size)
+def generate_coint_series(samples=10000, a_shift=20, b_shift=10):
+    noise = np.random.normal(0, 1, samples)
 
     prices_a = [a_shift]
 
-    for i in range(1, sample_size):
+    for i in range(1, samples):
         new_price = prices_a[i-1] + np.random.normal(0, 1, 1)[0]
         while new_price <= 10:
             new_price = prices_a[i-1] + np.random.normal(0, 1, 1)[0]
@@ -107,3 +108,10 @@ def generate_coint_series(sample_size=10000, a_shift=20, b_shift=0):
     prices_b = prices_a + b_shift + noise
 
     return prices_a, prices_b
+
+def display_coint_series(samples=100, b_shift=0):
+    prices_a, prices_b = generate_coint_series(samples=samples, b_shift=b_shift)
+
+    plt.plot(prices_a)
+    plt.plot(prices_b)
+    plt.show()

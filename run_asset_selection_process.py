@@ -1,0 +1,3 @@
+from processes.cointegration_detection_process import CointegrationDetectionProcess
+
+CointegrationDetectionProcess().run()

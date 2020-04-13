@@ -7,6 +7,8 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 from wallet import Wallet
+import datetime
+import json
 
 class Realtime:
     def __init__(self):
@@ -14,24 +16,25 @@ class Realtime:
 
     def setup_backtest(self):
         self.lookback_period = 80
-        self.z_upper = 1
-        self.z_lower = -1
+        self.z_upper = 2
+        self.z_lower = -2
         self.p_threshold = 0.05
-        self.non_coint_threshold = 60
+        self.non_coint_threshold = 10
         self.ticker_service = TickerService()
         self.price_service = PriceService()
 
     def setup_pass(self, asset_a, asset_b):
         self.wallet = Wallet()
         self.current_trade = {}
-        self.pass_number = 1
+        self.pass_number = 0
         self.asset_a = asset_a
         self.asset_b = asset_b
+        self.rolling_holdings = []
+        self.num_trades = 0
 
     def open_trade(self, p_val, zscore, ticker_data_a, ticker_data_b, hedge):
         if helper.is_cointegrated(self.asset_a, self.asset_b):
             if zscore > self.z_upper:
-                print('  - opening trade')
                 # Go Short: the spread is more than the mean so we short B and long A
                 price_a = ticker_data_a['ask']
                 price_b = ticker_data_b['bid']
@@ -41,10 +44,10 @@ class Realtime:
                 )
                 self.wallet.sell('b', self.current_trade['quantity_b'], price_b)
                 self.wallet.buy('a', self.current_trade['quantity_a'], price_a)
+                self.num_trades += 1
                 return
 
             if zscore < self.z_lower:
-                print('  - opening trade')
                 # Go Long: the spread is less than the mean so we short A and long B
                 price_a = ticker_data_a['bid']
                 price_b = ticker_data_b['ask']
@@ -54,22 +57,21 @@ class Realtime:
                 )
                 self.wallet.sell('a', self.current_trade['quantity_a'], price_a)
                 self.wallet.buy('b', self.current_trade['quantity_b'], price_b)
+                self.num_trades += 1
                 return
 
     def close_trade(self, p_val, zscore, ticker_data_a, ticker_data_b, hedge):
-        # if not helper.is_cointegrated(self.asset_a, self.asset_b):
-        #     if self.current_trade['non_coint_count'] > self.non_coint_threshold:
-        #         print('  - closing trade for notn cointegration')
-        #         self.close_for_non_cointegration(
-        #             p_val, zscore, ticker_data_a, ticker_data_b, hedge
-        #         )
-        #         self.current_trade = {}
-        #         return
-        #     else:
-        #         self.current_trade['non_coint_count'] += 1
+        if not helper.is_cointegrated(self.asset_a, self.asset_b):
+            if self.current_trade['non_coint_count'] > self.non_coint_threshold:
+                self.close_for_non_cointegration(
+                    p_val, zscore, ticker_data_a, ticker_data_b, hedge
+                )
+                self.current_trade = {}
+                return
+            else:
+                self.current_trade['non_coint_count'] += 1
 
         if self.current_trade['type'] == 'short' and zscore < self.z_lower:
-            print('  - closing trade')
             price_a = ticker_data_a['bid']
             price_b = ticker_data_b['ask']
 
@@ -80,34 +82,28 @@ class Realtime:
             return
 
         if self.current_trade['type'] == 'long' and zscore > self.z_upper:
-            print('  - closing trade')
             price_a = ticker_data_a['ask']
             price_b = ticker_data_b['bid']
 
             self.wallet.sell('b', self.current_trade['quantity_b'], price_b)
             self.wallet.buy('a', self.current_trade['quantity_a'], price_a)
 
-
             self.current_trade = {}
             return
 
-    # def close_for_non_cointegration(self, p_val, zscore, ticker_data_a, ticker_data_b, hedge):
-    #     if self.current_trade['type'] == 'short':
-    #         print('  - closing trade')
-    #         price_a = ticker_data_a['bid']
-    #         price_b = ticker_data_b['ask']
-    #
-    #         self.balance += helper.calculate_wallet_delta(
-    #             price_a, price_b, hedge, 'long'
-    #         )
-    #     else:
-    #         print('  - closing trade')
-    #         price_a = ticker_data_a['ask']
-    #         price_b = ticker_data_b['bid']
-    #
-    #         self.balance += helper.calculate_wallet_delta(
-    #             price_a, price_b, hedge, 'short'
-    #         )
+    def close_for_non_cointegration(self, p_val, zscore, ticker_data_a, ticker_data_b, hedge):
+        if self.current_trade['type'] == 'short':
+            price_a = ticker_data_a['bid']
+            price_b = ticker_data_b['ask']
+
+            self.wallet.sell('a', self.current_trade['quantity_a'], price_a)
+            self.wallet.buy('b', self.current_trade['quantity_b'], price_b)
+        else:
+            price_a = ticker_data_a['ask']
+            price_b = ticker_data_b['bid']
+
+            self.wallet.sell('b', self.current_trade['quantity_b'], price_b)
+            self.wallet.buy('a', self.current_trade['quantity_a'], price_a)
 
     def run(self, asset_a, asset_b):
         self.setup_pass(asset_a, asset_b)
@@ -132,8 +128,8 @@ class Realtime:
                     historic_prices_a, historic_prices_b
                 )
 
-                if not helper.currently_trading(self.current_trade):
-                    self.open_trade(
+                if helper.currently_trading(self.current_trade):
+                        self.close_trade(
                         p_val,
                         zscore,
                         ticker_data_a,
@@ -141,7 +137,7 @@ class Realtime:
                         hedge
                     )
                 else:
-                    self.close_trade(
+                    self.open_trade(
                         p_val,
                         zscore,
                         ticker_data_a,
@@ -150,6 +146,7 @@ class Realtime:
                     )
 
                 self.pass_number += 1
+                self.rolling_holdings.append(self.wallet.holdings['btc'])
 
                 print('pass ' + str(self.pass_number))
                 print('holdings (BTC): ', self.wallet.holdings['btc'])
@@ -159,6 +156,18 @@ class Realtime:
                 print('hedge:', hedge)
                 print('-'*20)
                 print()
+
+                result = {
+                    'pair': asset_a + '|' + asset_b,
+                    'holdings': self.wallet.holdings['btc'],
+                    'num_trades': self.num_trades,
+                    'timestamp': datetime.datetime.now().timestamp()
+                }
+                with open('realtime_results.json', 'r') as f:
+                    results_list = json.load(f)
+                    results_list.append(result)
+                with open('realtime_results.json', 'w') as f:
+                    json.dump(results_list, f)
 
                 time.sleep(60*5)
             # except:

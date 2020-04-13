@@ -12,3 +12,10 @@ class PriceService:
         for asset in assets:
             prices[asset] = pd.Series([float(c[4]) for c in candles[asset]])
         return prices
+
+    def historic_prices_from_pickled_candles(self, assets, candles):
+        prices = {}
+
+        for asset in assets:
+            prices[asset] = pd.Series([float(c[4]) for c in candles[asset]])
+        return prices

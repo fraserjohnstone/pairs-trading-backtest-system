@@ -3,6 +3,7 @@ import helpers.model_helper as helper
 from services.cointegration_service import CointegrationService
 import time
 from wallet import Wallet
+import json
 
 class Backtest:
     def __init__(self):
@@ -21,6 +22,8 @@ class Backtest:
         self.wallet = Wallet()
         self.current_trade = {}
         self.profits = []
+        self.num_trades = 0
+        self.rolling_holdings = []
 
     def open_trade(self, p_val, zscore, price_a, price_b, hedge):
         if p_val <= self.p_threshold:
@@ -31,6 +34,7 @@ class Backtest:
                 )
                 self.wallet.sell('b', self.current_trade['quantity_b'], price_b)
                 self.wallet.buy('a', self.current_trade['quantity_a'], price_a)
+                self.num_trades += 1
                 return
 
             if zscore < self.z_in_lower:
@@ -40,6 +44,7 @@ class Backtest:
                 )
                 self.wallet.sell('a', self.current_trade['quantity_a'], price_a)
                 self.wallet.buy('b', self.current_trade['quantity_b'], price_b)
+                self.num_trades += 1
                 return
 
     def close_trade(self, p_val, zscore, price_a, price_b, hedge):
@@ -55,16 +60,12 @@ class Backtest:
         if self.current_trade['type'] == 'short' and zscore < self.z_out_lower:
             self.wallet.sell('a', self.current_trade['quantity_a'], price_a)
             self.wallet.buy('b', self.current_trade['quantity_b'], price_b)
-            # profit = helper.calculate_profit(self.current_trade)
-            # self.profits.append(profit)
             self.current_trade = {}
             return
 
         if self.current_trade['type'] == 'long' and zscore > self.z_out_upper:
             self.wallet.sell('b', self.current_trade['quantity_b'], price_b)
             self.wallet.buy('a', self.current_trade['quantity_a'], price_a)
-            # profit = helper.calculate_profit(self.current_trade)
-            # self.profits.append(profit)
             self.current_trade = {}
             return
 
@@ -77,10 +78,10 @@ class Backtest:
     #         self.wallet.buy('a', self.current_trade['quantity_a'], price_a)
 
     def run(self, pairs):
-        # for pair, vals in pairs.items():
-            prices_a, prices_b = helper.generate_coint_series()
-            # prices_a = vals['prices_a']
-            # prices_b = vals['prices_b']
+        for pair, vals in pairs.items():
+            # prices_a, prices_b = helper.generate_coint_series()
+            prices_a = vals['prices_a']
+            prices_b = vals['prices_b']
 
             self.setup_pass()
 
@@ -116,11 +117,25 @@ class Backtest:
                         hedge
                     )
 
+                self.rolling_holdings.append(self.wallet.holdings['btc'])
+
                 print('holdings (BTC): ', self.wallet.holdings['btc'])
-                print('holidings (Asset A): ', self.wallet.holdings['a'])
-                print('holidings (Asset B): ', self.wallet.holdings['b'])
+                print('holdings (Asset A): ', self.wallet.holdings['a'])
+                print('holdings (Asset B): ', self.wallet.holdings['b'])
                 print('zscore:', zscore)
                 print('hedge:', hedge)
                 print('-'*20)
                 print()
-            # helper.save_plot(self.balance, self.balances, pair)
+
+            result = {
+                'pair': pair,
+                'holdings': self.wallet.holdings['btc'],
+                'rolling_holdings': self.rolling_holdings,
+                'avg_ratio': vals['avg_ratio'],
+                'num_trades': self.num_trades
+            }
+            with open('backtest_results.json', 'r') as f:
+                results_list = json.load(f)
+                results_list.append(result)
+            with open('backtest_results.json', 'w') as f:
+                json.dump(results_list, f)
